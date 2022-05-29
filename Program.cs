@@ -4,25 +4,27 @@ using KillBot;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using KillBot.services;
+using Microsoft.Extensions.Configuration;
 
 public class Program
 {
     public static Task Main(string[] args) => new Program().MainAsync();
-    public static ILogger Logger = new LogProvider("VERBOSE").Logger;
+    public static Configuration _config = Configuration.GetConfiguration("config.json");
+    public static ILogger Logger = new LogProvider(_config.LogLevel).Logger;
 
     public async Task MainAsync()
     {
+        Logger.Verbose("Getting configuration..");
         // Get configuration
-        Configuration config = Configuration.GetConfiguration("config.json");        
-        Logger.Debug("Starting Discord Bot {0}.", config.AppName);
-        
-        string? token = Environment.GetEnvironmentVariable(config.DiscordTokenKey);
-        Logger.Verbose("Discord Token Key: {0} => {1}", config.DiscordTokenKey, token);
+        Logger.Debug("Starting Discord Bot {0}.", _config.AppName);
+
+        string? token = Environment.GetEnvironmentVariable(_config.DiscordTokenKey);
+        Logger.Verbose("Discord Token Key: {0} => {1}", _config.DiscordTokenKey, token);
 
         DiscordSocketClient client = new DiscordSocketClient();
         client.Log += Log;
 
-        await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable(config.DiscordTokenKey));
+        await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable(_config.DiscordTokenKey));
 
         Logger.Debug("Starting client");
 
@@ -35,26 +37,52 @@ public class Program
 
 
 
-        Logger.Information("Client started successfully.\nStatus: {0)", client.Status);
+        Logger.Information("Client started successfully. Status: {0}", client.Status);
 
-        await Task.Delay(-1);
+        await Task.Factory.StartNew(() => Console.ReadLine());
 
         Logger.Information("Shutting down...");
     }
 
     public static async Task Log(LogMessage msg)
     {
-        switch (msg.Severity){
-            case LogSeverity.Debug:
+        await Task.Factory.StartNew(() =>
+        {
+            switch (msg.Severity)
+            {
+                case LogSeverity.Debug:
+                    Logger.Debug(msg.ToString());
+                    break;
+                case LogSeverity.Info:
+                    Logger.Information(msg.ToString());
+                    break;
+                case LogSeverity.Warning:
+                    Logger.Warning(msg.ToString());
+                    break;
+                case LogSeverity.Error:
+                    Logger.Error(msg.ToString());
+                    break;
+                default:
+                    Logger.Verbose(msg.ToString());
+                    break;
+            }
+        });
+    }
+
+    public static void Log(string msg, Microsoft.Extensions.Logging.LogLevel level)
+    {
+        switch (level)
+        {
+            case Microsoft.Extensions.Logging.LogLevel.Debug:
                 Logger.Debug(msg.ToString());
                 break;
-            case LogSeverity.Info:
+            case Microsoft.Extensions.Logging.LogLevel.Information:
                 Logger.Information(msg.ToString());
                 break;
-            case LogSeverity.Warning:
+            case Microsoft.Extensions.Logging.LogLevel.Warning:
                 Logger.Warning(msg.ToString());
                 break;
-            case LogSeverity.Error:
+            case Microsoft.Extensions.Logging.LogLevel.Error:
                 Logger.Error(msg.ToString());
                 break;
             default:
@@ -62,6 +90,6 @@ public class Program
                 break;
         }
     }
-
-
 }
+
+
