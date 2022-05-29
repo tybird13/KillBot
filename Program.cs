@@ -69,24 +69,26 @@ public class Program
         });
     }
 
-    public static void Log(string msg, Microsoft.Extensions.Logging.LogLevel level)
+    public static void DBLog(string msg)
     {
-        switch (level)
+        string _msg = "DB LOG: " + msg;
+
+        switch (_config.LogLevel)
         {
-            case Microsoft.Extensions.Logging.LogLevel.Debug:
-                Logger.Debug(msg.ToString());
+            case LogLevel.DEBUG:
+                Logger.Debug(_msg);
                 break;
-            case Microsoft.Extensions.Logging.LogLevel.Information:
-                Logger.Information(msg.ToString());
+            case LogLevel.INFO:
+                Logger.Information(_msg);
                 break;
-            case Microsoft.Extensions.Logging.LogLevel.Warning:
-                Logger.Warning(msg.ToString());
+            case LogLevel.WARN:
+                Logger.Warning(_msg);
                 break;
-            case Microsoft.Extensions.Logging.LogLevel.Error:
-                Logger.Error(msg.ToString());
+            case LogLevel.ERROR:
+                Logger.Error(_msg);
                 break;
             default:
-                Logger.Verbose(msg.ToString());
+                Logger.Verbose(_msg);
                 break;
         }
     }

@@ -5,6 +5,8 @@ using Discord.WebSocket;
 using Discord.Commands;
 using KillBot.services;
 using CustomLogging;
+using KillBot.database;
+using Microsoft.Extensions.Configuration;
 
 namespace KillBot
 {
@@ -12,13 +14,17 @@ namespace KillBot
     {
         public string AppName { get; set; } = "";
         public string DiscordTokenKey { get; set; } = "";
+        public string DatabaseFileName { get; set; } = "";
+        public LogLevel LogLevel { get; set; } = LogLevel.VERBOSE;
 
         public static Configuration GetConfiguration(string pathToConfigJsonFile)
         {
+
             using (StreamReader sr = new StreamReader(pathToConfigJsonFile))
             {
-                Configuration? configuration = JsonConvert.DeserializeObject<Configuration>(sr.ReadToEnd());
-                if(configuration == null)
+                string json = sr.ReadToEnd();
+                Configuration? configuration = JsonConvert.DeserializeObject<Configuration>(json);
+                if (configuration == null)
                 {
                     throw new Exception($"Unable to load configuration from file '{pathToConfigJsonFile}'");
                 }
@@ -26,21 +32,23 @@ namespace KillBot
             }
         }
 
-        public static ServiceProvider BuildServiceProvider(ILogger logger, DiscordSocketClient client) {
+        public static ServiceProvider BuildServiceProvider(ILogger logger, DiscordSocketClient client)
+        {
             logger.Verbose("Building services");
-            ServiceCollection sc = new ServiceCollection();
+            ServiceCollection serviceCollection = new ServiceCollection();
 
-            sc.AddSingleton(client);
+            serviceCollection.AddSingleton(client);
 
             // set the logging level to verbose
             var commandServiceConfig = new CommandServiceConfig();
             commandServiceConfig.LogLevel = LogSeverity.Verbose;
-
-            sc.AddSingleton(new CommandService(commandServiceConfig));
-            sc.AddSingleton<CommandHandler>();
-            sc.AddSingleton(logger);
+            serviceCollection.AddSingleton(new CommandService(commandServiceConfig));
+            serviceCollection.AddSingleton<Configuration>();
+            serviceCollection.AddSingleton<CommandHandler>();
+            serviceCollection.AddSingleton(logger);
+            serviceCollection.AddDbContext<AppDBContext>();
             logger.Verbose("Finished building the services");
-            return sc.BuildServiceProvider();
+            return serviceCollection.BuildServiceProvider();
         }
 
     }
