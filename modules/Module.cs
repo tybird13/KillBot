@@ -142,10 +142,8 @@ namespace KillBot.modules
         [Command("kill")]
         public async Task KillHelpAsync(string? token)
         {
-            // Bots can't activate the help command
-            if (Context.User.IsBot) return;
-
-            await ReplyAsync(FormattedHelpMessage());
+            logger.Verbose("Unknown token {0}. Either the user is offline or it's bad text.", token);
+            await ReplyAsync($"Unknown token ```{token}```Either this user is offline, or it's bad text.");
         }
 
         [Command("kill")]
