@@ -10,11 +10,12 @@ public class Program
 {
     public static Task Main(string[] args) => new Program().MainAsync();
     public static Configuration _config = Configuration.GetConfiguration("config.json");
-    public static ILogger Logger = new LogProvider(_config.LogLevel).Logger;
+    public static ILogger Logger = new LogProvider(_config.LogLevel, Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "KillBot", "Log.log")).Logger;
 
     public async Task MainAsync()
     {
         Logger.Verbose("Getting configuration..");
+        Logger.Verbose("Logger file path: {0}", Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "KillBot", "Log.log"));
         // Get configuration
         Logger.Debug("Starting Discord Bot {0}.", _config.AppName);
 
@@ -34,8 +35,6 @@ public class Program
         ServiceProvider services = Configuration.BuildServiceProvider(Logger, client);
         CommandHandler commandHandler = services.GetRequiredService<CommandHandler>();
         await commandHandler.InstallCommandsAsync();
-
-
 
         Logger.Information("Client started successfully. Status: {0}", client.Status);
 

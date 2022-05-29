@@ -12,11 +12,21 @@ namespace KillBot.database
         {
             options.EnableDetailedErrors()
                 .LogTo((msg) => Program.DBLog(msg), Microsoft.Extensions.Logging.LogLevel.Debug);
-            var folder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var dbPath = Path.Join(folder, Program._config.DatabaseFileName);
+
+            var folder = "KillBot";
+
+            var pathFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var dbPath = Path.Join(pathFolder, folder);
+
+            if (!Directory.Exists(dbPath))
+            {
+                Directory.CreateDirectory(dbPath);
+            }
+            
+            Program.Logger.Verbose("Database File Path: {0}", dbPath);
 
              SqliteConnectionStringBuilder bldr = new SqliteConnectionStringBuilder();
-            bldr.DataSource = dbPath;
+            bldr.DataSource = Path.Join(dbPath, Program._config.DatabaseFileName);
             string conn = bldr.ConnectionString.ToString();
             options.UseSqlite(new SqliteConnection(conn));
 
