@@ -17,7 +17,7 @@ namespace KillBot.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "6.0.5");
 
-            modelBuilder.Entity("KillBot.models.Kills", b =>
+            modelBuilder.Entity("KillBot.models.Kill", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -30,16 +30,13 @@ namespace KillBot.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("MyProperty")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("TargetUsername")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.ToTable("kills");
+                    b.ToTable("Kills");
                 });
 #pragma warning restore 612, 618
         }

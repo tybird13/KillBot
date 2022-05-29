@@ -6,7 +6,7 @@ namespace KillBot.database
 {
     public class AppDBContext: DbContext
     {
-        public DbSet<Kills> kills { get; set; }
+        public DbSet<Kill> Kills { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {

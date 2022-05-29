@@ -7,11 +7,10 @@ using System.Threading.Tasks;
 
 namespace KillBot.models
 {
-    public class Kills
+    public class Kill
     {
         [Key]
         public Guid Id { get; set; }
-        public int MyProperty { get; set; }
         public string KillerUsername { get; set; } = "";
         public string TargetUsername { get; set; } = "";
         public DateTime CreatedAt { get; set; }
