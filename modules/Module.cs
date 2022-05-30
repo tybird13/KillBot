@@ -51,7 +51,7 @@ namespace KillBot.modules
         [Summary("Kill This Man! Get statistics on yourself.")]
         public async Task KillStatsAsync(IUser? user = null)
         {
-            logger.Verbose("Kill statistics method invoked.\nUser is {0}", user);
+            logger.Verbose("Kill statistics method invoked. User is {0}", user);
             IUser currentUser;
             if (user == null)
             {
@@ -84,7 +84,7 @@ namespace KillBot.modules
             sb.AppendLine($"☠ Here are the statistics for {currentUser.Username}:")
               .AppendLine($"☠ You have been killed {numTimesUserHasBeenKilled} time(s)")
               .AppendLine("☠ You have killed the following users:")
-              .AppendFormat("☠ {0,-50} {1,10}", "User", "Kills").AppendLine();
+              .AppendFormat("☠ {0,-50}\t{1,10}", "User", "Kills").AppendLine();
 
             // Append '-' 60 times
             sb.Append("☠ ");
@@ -93,14 +93,13 @@ namespace KillBot.modules
 
             foreach (KeyValuePair<string, int> kv in userkillsdict)
             {
-                sb.AppendFormat("☠ {0,-50}", kv.Key);
-                sb.AppendFormat("{0,6}", kv.Value).AppendLine();
+                sb.AppendFormat("☠ {0,-50}\t{1,10}", kv.Key, kv.Value).AppendLine();
             }
 
             sb.AppendLine("☠")
               .AppendLine("☠")
-              .AppendLine("☠ You have been killed by the following people")
-              .AppendFormat("☠ {0,-50} {1,10}", "User", "Kills").AppendLine();
+              .AppendLine("☠ You have been killed by the following users:")
+              .AppendFormat("☠ {0,-50}\t{1,10}", "User", "Kills").AppendLine();
             
             // Append '-' 60 times
             sb.Append("☠ ");
@@ -109,8 +108,7 @@ namespace KillBot.modules
 
             foreach (KeyValuePair<string, int> kv in userWasKilledDict)
             {
-                sb.AppendFormat("☠ {0,-50}", kv.Key);
-                sb.AppendFormat("{0,6}", kv.Value).AppendLine();
+                sb.AppendFormat("☠ {0,-50}\t{1,10}", kv.Key, kv.Value).AppendLine();
             }
 
             if (user == null)

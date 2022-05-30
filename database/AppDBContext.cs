@@ -11,7 +11,7 @@ namespace KillBot.database
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
             options.EnableDetailedErrors()
-                .LogTo((msg) => Program.DBLog(msg), Microsoft.Extensions.Logging.LogLevel.Debug);
+                .LogTo((msg) => Program.DBLog(msg), Microsoft.Extensions.Logging.LogLevel.Warning);
 
             var folder = "KillBot";
 
