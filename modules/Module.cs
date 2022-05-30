@@ -91,11 +91,12 @@ namespace KillBot.modules
             sb.AppendLine($"☠ Here are the statistics for {currentUser}:")
               .AppendLine($"☠ You have been killed {numTimesUserHasBeenKilled} time(s)")
               .AppendLine("☠ You have killed the following users:")
+              .AppendLine("```")
               .AppendFormat("☠ {0,-50}\t{1,10}", "User", "Kills").AppendLine();
 
             // Append '-' 60 times
             sb.Append("☠ ");
-            for (int i = 0; i < 55; i++) { sb.Append("-"); }
+            for (int i = 0; i < 65; i++) { sb.Append("-"); }
             sb.AppendLine();
 
             foreach (KeyValuePair<string, int> kv in userkillsdict)
@@ -103,21 +104,21 @@ namespace KillBot.modules
                 sb.AppendFormat("☠ {0,-50}\t{1,10}", kv.Key, kv.Value).AppendLine();
             }
 
-            sb.AppendLine("☠")
-              .AppendLine("☠")
+            sb.AppendLine("```")
               .AppendLine("☠ You have been killed by the following users:")
+              .AppendLine("```")
               .AppendFormat("☠ {0,-50}\t{1,10}", "User", "Kills").AppendLine();
 
             // Append '-' 60 times
             sb.Append("☠ ");
-            for (int i = 0; i < 55; i++) { sb.Append("-"); }
+            for (int i = 0; i < 65; i++) { sb.Append("-"); }
             sb.AppendLine();
 
             foreach (KeyValuePair<string, int> kv in userWasKilledDict)
             {
                 sb.AppendFormat("☠ {0,-50}\t{1,10}", kv.Key, kv.Value).AppendLine();
             }
-
+            sb.AppendLine("```");
 
             await ReplyAsync(sb.ToString());
 
