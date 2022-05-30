@@ -24,39 +24,46 @@ namespace KillBot.modules
 
         [Command("kill")]
         [Summary("Kill This Man! Admonish someone who says or does something cringy or stupid.")]
-        public async Task KillAsync(IUser user)
+        public async Task KillAsync([Remainder] string user)
         {
 
             // Bots can't activate the kill command
             if (Context.User.IsBot) return;
 
-            logger.Verbose("Kill command activated");
+            logger.Debug("Kill command activated by {0}", Context.User.Username);
             SocketUser callingUser = Context.User;
-            logger.Debug("{0} killed {1}", callingUser.Username, user.Username);
+            logger.Debug("{0} killed {1}", callingUser.Username, user);
             logger.Verbose("Adding record");
 
-            EntityEntry killEvent = await database.Kills.AddAsync(new Kill() { KillerUsername = callingUser.Username, TargetUsername = user.Username });
+            EntityEntry killEvent = await database.Kills.AddAsync(new Kill() { KillerUsername = callingUser.Username.ToLower(), TargetUsername = user.ToLower() });
             await database.SaveChangesAsync();
             // Figure out how many times this user has killed the target user
-            int times = database.Kills
-                .Where(k => k.TargetUsername == user.Username && k.KillerUsername == callingUser.Username)
-                .Count();
-            string times_str = times == 1 ? "time" : "times";
+            try
+            {
+                int times = database.Kills
+                    .Where(k => k.TargetUsername.ToLower() == user.ToLower() && k.KillerUsername.ToLower() == callingUser.Username.ToLower())
+                    .Count();
+                string times_str = times == 1 ? "time" : "times";
 
-            // Respond on Discord
-            await ReplyAsync($"☠ {callingUser.Username} killed {user.Username}\n☠ {callingUser.Username} has killed {user.Username} **{times} {times_str}**");
+                // Respond on Discord
+                await ReplyAsync($"☠ {callingUser.Username} killed {user}\n☠ {callingUser.Username} has killed {user} **{times} {times_str}**");
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Error\n{0}", ex);
+            }
         }
 
         [Command("killstats")]
-        [Summary("Kill This Man! Get statistics on yourself.")]
-        public async Task KillStatsAsync(IUser? user = null)
+        [Summary("Kill This Man! Get statistics")]
+        public async Task KillStatsAsync([Remainder] string? user = null)
         {
-            logger.Verbose("Kill statistics method invoked. User is {0}", user);
-            IUser currentUser;
+            logger.Verbose("Kill statistics method invoked by {0}.", Context.User.Username);
+            string currentUser;
             if (user == null)
             {
                 // get statistics for the current calling user
-                currentUser = Context.User;
+                currentUser = Context.User.Username;
             }
             else
             {
@@ -65,8 +72,8 @@ namespace KillBot.modules
             }
 
             // Find the relevent records
-            List<Kill> usersKills = database.Kills.Where(k => k.KillerUsername == currentUser.Username).ToList();
-            List<Kill> timesCurrentUserWasKilled = database.Kills.Where(k => k.TargetUsername == currentUser.Username).ToList();
+            List<Kill> usersKills = database.Kills.Where(k => k.KillerUsername.ToLower() == currentUser.ToLower()).ToList();
+            List<Kill> timesCurrentUserWasKilled = database.Kills.Where(k => k.TargetUsername.ToLower() == currentUser.ToLower()).ToList();
 
             int numTimesUserHasBeenKilled = timesCurrentUserWasKilled.Count;
 
@@ -81,7 +88,7 @@ namespace KillBot.modules
 
             // Get statistics on yourself
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"☠ Here are the statistics for {currentUser.Username}:")
+            sb.AppendLine($"☠ Here are the statistics for {currentUser}:")
               .AppendLine($"☠ You have been killed {numTimesUserHasBeenKilled} time(s)")
               .AppendLine("☠ You have killed the following users:")
               .AppendFormat("☠ {0,-50}\t{1,10}", "User", "Kills").AppendLine();
@@ -100,7 +107,7 @@ namespace KillBot.modules
               .AppendLine("☠")
               .AppendLine("☠ You have been killed by the following users:")
               .AppendFormat("☠ {0,-50}\t{1,10}", "User", "Kills").AppendLine();
-            
+
             // Append '-' 60 times
             sb.Append("☠ ");
             for (int i = 0; i < 55; i++) { sb.Append("-"); }
@@ -111,38 +118,12 @@ namespace KillBot.modules
                 sb.AppendFormat("☠ {0,-50}\t{1,10}", kv.Key, kv.Value).AppendLine();
             }
 
-            if (user == null)
-            {
-                await currentUser.SendMessageAsync(sb.ToString());
-                await ReplyAsync($"☠ {currentUser.Username} has been killed {numTimesUserHasBeenKilled} time(s)");
-            }
-            else
-            {
-                await ReplyAsync(sb.ToString());
-            }
+
+            await ReplyAsync(sb.ToString());
+
 
         }
 
-        /// <summary>
-        /// You can't use text with this commant, return help message
-        /// </summary>
-        /// <param name="token"></param>
-        /// <returns></returns>
-        [Command("killstats")]
-        public async Task KillstatsAsync(string? token)
-        {
-            // Bots can't activate the help command
-            if (Context.User.IsBot) return;
-
-            await ReplyAsync(FormattedHelpMessage());
-        }
-
-        [Command("kill")]
-        public async Task KillHelpAsync(string? token)
-        {
-            logger.Verbose("Unknown token {0}. Either the user is offline or it's bad text.", token);
-            await ReplyAsync($"Unknown token ```{token}```Either this user is offline, or it's bad text.");
-        }
 
         [Command("kill")]
         [Summary("Kill This Man! Admonish someone who says or does something cringy or stupid.")]
