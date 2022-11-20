@@ -14,6 +14,8 @@ namespace KillBot.models
         public string KillerUsername { get; set; } = "";
         public string TargetUsername { get; set; } = "";
         public DateTime CreatedAt { get; set; }
+        public string? Reason { get; set; }
+
 
     }
 }

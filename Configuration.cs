@@ -6,7 +6,6 @@ using Discord.Commands;
 using KillBot.services;
 using CustomLogging;
 using KillBot.database;
-using Microsoft.Extensions.Configuration;
 
 namespace KillBot
 {
@@ -15,7 +14,12 @@ namespace KillBot
         public string AppName { get; set; } = "";
         public string DiscordTokenKey { get; set; } = "";
         public string DatabaseFileName { get; set; } = "";
-        public LogLevel LogLevel { get; set; } = LogLevel.VERBOSE;
+        public string LogLevel { get; set; }
+
+        public Configuration()
+        {
+            LogLevel = CustomLogging.LogLevel.VERBOSE;
+        }
 
         public static Configuration GetConfiguration(string pathToConfigJsonFile)
         {

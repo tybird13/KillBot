@@ -30,6 +30,9 @@ namespace KillBot.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Reason")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("TargetUsername")
                         .IsRequired()
                         .HasColumnType("TEXT");

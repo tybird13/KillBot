@@ -10,22 +10,20 @@ public class Program
 {
     public static Task Main(string[] args) => new Program().MainAsync();
     public static Configuration _config = Configuration.GetConfiguration("config.json");
-    public static ILogger Logger = new LogProvider(_config.LogLevel, Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "KillBot", "Log.log")).Logger;
+    public static ILogger Logger = new LogProvider(_config.LogLevel).Logger;
 
     public async Task MainAsync()
     {
         Logger.Verbose("Getting configuration..");
-        Logger.Verbose("Logger file path: {0}", Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "KillBot", "Log.log"));
         // Get configuration
         Logger.Debug("Starting Discord Bot {0}.", _config.AppName);
 
         string? token = Environment.GetEnvironmentVariable(_config.DiscordTokenKey);
-        Logger.Verbose("Discord Token Key: {0} => {1}", _config.DiscordTokenKey, token);
 
         DiscordSocketClient client = new DiscordSocketClient();
         client.Log += Log;
 
-        await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable(_config.DiscordTokenKey));
+        await client.LoginAsync(TokenType.Bot, token);
 
         Logger.Debug("Starting client");
 
@@ -38,7 +36,17 @@ public class Program
 
         Logger.Information("Client started successfully. Status: {0}", client.Status);
 
-        await Task.Factory.StartNew(() => Console.ReadLine());
+        await Task.Factory.StartNew(() =>
+        {
+            string? response;
+            do
+            {
+                Console.WriteLine("Type 'exit' to close.");
+                response = Console.ReadLine();
+
+            } while (response == null || !response.Equals("exit"));
+
+        });
 
         Logger.Information("Shutting down...");
     }
