@@ -133,12 +133,13 @@ namespace KillBot.modules
                 .ToDictionary(k => k.Key, k => k.Count()));
 
             List<Kill> userDeaths = allRelevantKills.Where(k => k.TargetUsername.ToLower().Equals(currentUser.ToLower())).ToList();
+            var topTen = userDeaths.Where(k => !String.IsNullOrEmpty(k.Reason)).OrderByDescending(k => k.CreatedAt).Take(10).ToList();
 
             Task<Dictionary<string, int>> userDeathsDictTask = Task.Factory.StartNew(() => userDeaths
                 .GroupBy(k => k.TargetUsername)
                 .OrderByDescending(k => k.Count())
                 .ToDictionary(k => k.Key, k => k.Count()));
-            
+
             // var lastTenTimesKilled = database.Kills
 
             await Task.WhenAll(userKillsDictTask, userDeathsDictTask);
@@ -155,37 +156,54 @@ namespace KillBot.modules
                 writer.WriteLine($"☠ You have been killed {numTimesUserHasBeenKilled} time(s)");
                 writer.WriteLine("☠ You have killed the following users:");
                 writer.WriteLine();
-                writer.Write("☠ {0,-50}\t{1,10}\t{2,50}", "User", "Kills", "Reason");
+                writer.Write("☠ {0,-50}\t{1,10}", "User", "Kills");
                 writer.WriteLine();
 
                 // Append '-' 60 times
                 writer.Write("☠ ");
-                for (int i = 0; i < 115; i++) { writer.Write("-"); }
+                for (int i = 0; i < 65; i++) { writer.Write("-"); }
                 writer.WriteLine();
 
                 foreach (KeyValuePair<string, int> kv in userKillsDict)
                 {
-                    foreach (var kill in kv.Value)
-                    {
-                        writer.Write("☠ {0,-50}\t{1,10}\t{2,50}", kv.Key, kv.Value.Count, kill.Reason ?? "No Reason Given");
-                        writer.WriteLine();
-                    }
+                    writer.Write("☠ {0,-50}\t{1,10}", kv.Key, kv.Value);
+                    writer.WriteLine();
+
                 }
 
+                writer.WriteLine();
                 writer.WriteLine("☠ You have been killed by the following users:");
-                writer.Write("☠ {0,-50}\t{1,10}\t{2}", "User", "Kills", "Reason");
+                writer.Write("☠ {0,-50}\t{1,10}", "User", "Kills");
                 writer.WriteLine();
 
                 // Append '-' 60 times
                 writer.Write("☠ ");
-                for (int i = 0; i < 115; i++) { writer.Write("-"); }
+                for (int i = 0; i < 65; i++) { writer.Write("-"); }
                 writer.WriteLine();
 
-                foreach (KeyValuePair<string, List<Kill>> kv in userWasKilledDict)
+                foreach (KeyValuePair<string, int> kv in userDeathsDict)
                 {
-                    foreach (var kill in kv.Value)
+                    writer.Write("☠ {0,-50}\t{1,10}", kv.Key, kv.Value);
+                    writer.WriteLine();
+
+                }
+
+                if (topTen.Any())
+                {
+                    writer.WriteLine();
+                    writer.WriteLine("☠ Here are the last 10 times someone killed you and why:");
+                    writer.Write("☠ {0,-50}\t{1,15}\t{2, 50}", "User", "Date", "Reason");
+                    writer.WriteLine();
+
+                    // Append '-' 115 times
+                    writer.Write("☠ ");
+                    for (int i = 0; i < 130; i++) { writer.Write("-"); }
+                    writer.WriteLine();
+
+
+                    foreach (Kill k in topTen)
                     {
-                        writer.Write("☠ {0,-50}\t{1,10}\t{2}", kv.Key, kv.Value.Count, kill.Reason ?? "No Reason Given");
+                        writer.Write("☠ {0,-50}\t{1,15}\t{2, 50}", k.KillerUsername, k.CreatedAt, k.Reason);
                         writer.WriteLine();
                     }
                 }
