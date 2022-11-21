@@ -8,6 +8,10 @@ namespace KillBot.database
     {
         public DbSet<Kill> Kills { get; set; }
 
+        public AppDBContext(){
+            Database.EnsureCreated();
+        }
+
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
             options.EnableDetailedErrors()
@@ -29,7 +33,7 @@ namespace KillBot.database
             bldr.DataSource = Path.Join(dbPath, Program._config.DatabaseFileName);
             string conn = bldr.ConnectionString.ToString();
             options.UseSqlite(new SqliteConnection(conn));
-
+            
         }
     }
 }
