@@ -43,17 +43,14 @@ namespace KillBot.modules
             if (!match.Success)
             {
                 logger.Error("The parameters for the kill command do not match the required pattern of !kill <user mention> \"reason\"");
-                await Context.Channel.SendMessageAsync("To kill someone, use the following format: `!kill @user \"Reason you killed them\"");
+                await Context.Channel.SendMessageAsync("To kill someone, use the following format: `!kill @user \"Reason you killed them\"`");
                 return;
             }
 
             string userMention = match.Groups["mention"].Value;
             string? reason = match.Groups["reason"].Value;
 
-            // Get the username from the user mention
-            IAsyncEnumerable<IReadOnlyCollection<IGuildUser>> users = Context.Guild.GetUsersAsync();
-            var allUsers = await users.Flatten().ToListAsync();
-            IGuildUser? user = allUsers.FirstOrDefault(u => u.Id.ToString().Equals(userMention, StringComparison.OrdinalIgnoreCase));
+            IGuildUser? user = await GetGuildUserFromIdAsync(userMention);
 
             if (user == null)
             {
@@ -61,15 +58,17 @@ namespace KillBot.modules
                 return;
             }
 
-            logger.Verbose("Kill command activated by {0}", Context.User.Username);
             SocketUser callingUser = Context.User;
+            logger.Verbose("Kill command activated by {0}", callingUser.Username);
             logger.Debug("{0} killed {1}", callingUser.Username, user);
 
             var kill = new Kill()
             {
                 CreatedAt = DateTime.Now,
-                KillerUsername = callingUser.Username.ToLower(),
-                TargetUsername = user.Username.ToLower(),
+                KillerId = callingUser.Id.ToString(),
+                TargetId = user.Id.ToString(),
+                KillerUsername = callingUser.Username,
+                TargetUsername = user.Username,
                 Reason = reason
             };
 
@@ -79,12 +78,12 @@ namespace KillBot.modules
             try
             {
                 int times = database.Kills
-                    .Where(k => k.TargetUsername.ToLower() == user.Username.ToLower() && k.KillerUsername.ToLower() == callingUser.Username.ToLower())
+                    .Where(k => k.TargetId == user.Id.ToString() && k.KillerId == callingUser.Id.ToString())
                     .Count();
                 string times_str = times == 1 ? "time" : "times";
 
                 // Respond on Discord
-                await ReplyAsync($"☠ {callingUser.Username} killed {user.Username}\n☠ {callingUser.Username} has killed {user.Username} **{times} {times_str}**");
+                await ReplyAsync($"☠ {((IGuildUser)callingUser).Nickname} killed {user.Nickname}\n☠ {((IGuildUser)callingUser).Nickname} has killed {user.Nickname} **{times} {times_str}**");
             }
             catch (Exception ex)
             {
@@ -94,49 +93,62 @@ namespace KillBot.modules
 
         [Command("killstats")]
         [Summary("Kill This Man! Get statistics")]
-        public async Task KillStatsAsync([Remainder] string? user = null)
+        public async Task KillStatsAsync([Remainder] string? userMention = null)
         {
             logger.Verbose("Kill statistics method invoked by {0}.", Context.User.Username);
-            string currentUser;
-            if (user == null)
+
+            Dictionary<string, IGuildUser> allUsers = await GetAllUsersDictionary();
+
+            IGuildUser currentUser;
+            if (userMention == null)
             {
                 // get statistics for the current calling user
-                currentUser = Context.User.Username;
+                currentUser = (IGuildUser)Context.User;
             }
             else
             {
+                const string pattern = "^<@(?<mention>[0-9]+)>$";
+                var match = Regex.Match(userMention, pattern);
+                if (!match.Success)
+                {
+                    logger.Error("Unable to match user entry {0} to pattern {1} ", userMention, pattern);
+                    await ReplyAsync("There was an issue. In order to see the kill stats for a user, please enter `!killstats @user`");
+                    return;
+                }
+
                 // get statistics for the desired user
-                currentUser = user;
+                var result = allUsers[match.Groups["mention"].Value];
+
+                if (result == null)
+                {
+                    logger.Error("There was an issue getting the user from the mention id {0}", userMention);
+                    await ReplyAsync("There was an issue. In order to see the kill stats for a user, please enter `!killstats @user`");
+                    return;
+                }
+
+                currentUser = result;
+
             }
 
             // Find the relevant records
-
-            /*
-                ------ you've died x times -----
-
-                ------ you've killed these ppl
-
-                ------ you've been killed by these ppl
-
-                ------- top 10 latest deaths by ppl ----- 
-
-            */
             List<Kill> allRelevantKills = database.Kills
-                .Where(k => k.KillerUsername.ToLower().Equals(currentUser.ToLower()) || k.TargetUsername.ToLower().Equals(currentUser.ToLower()))
+                .Where(k => k.KillerId.Equals(currentUser.Id.ToString()) || k.TargetId.Equals(currentUser.Id.ToString()))
                 .ToList();
 
-            List<Kill> userKills = allRelevantKills.Where(k => k.KillerUsername.ToLower().Equals(currentUser.ToLower())).ToList();
+            List<Kill> userKills = allRelevantKills.Where(k => k.KillerId.ToString().Equals(currentUser.Id.ToString())).ToList();
 
-            Task<Dictionary<string, int>> userKillsDictTask = Task.Factory.StartNew(() => userKills
-                .GroupBy(k => k.TargetUsername)
+            Task<Dictionary<string, int>> userKillsDictTask = Task.Factory.StartNew(() =>
+                userKills
+                .GroupBy(k => k.TargetId)
                 .OrderByDescending(k => k.Count())
-                .ToDictionary(k => k.Key, k => k.Count()));
+                .ToDictionary(k => k.Key, k => k.Count())
+            );
 
-            List<Kill> userDeaths = allRelevantKills.Where(k => k.TargetUsername.ToLower().Equals(currentUser.ToLower())).ToList();
+            List<Kill> userDeaths = allRelevantKills.Where(k => k.TargetId.ToString().Equals(currentUser.Id.ToString())).ToList();
             var topTen = userDeaths.Where(k => !String.IsNullOrEmpty(k.Reason)).OrderByDescending(k => k.CreatedAt).Take(10).ToList();
 
             Task<Dictionary<string, int>> userDeathsDictTask = Task.Factory.StartNew(() => userDeaths
-                .GroupBy(k => k.TargetUsername)
+                .GroupBy(k => k.KillerId)
                 .OrderByDescending(k => k.Count())
                 .ToDictionary(k => k.Key, k => k.Count()));
 
@@ -152,46 +164,58 @@ namespace KillBot.modules
             using (var ms = new MemoryStream())
             {
                 var writer = new StreamWriter(ms);
-                writer.WriteLine($"☠ Here are the statistics for {currentUser}:");
-                writer.WriteLine($"☠ You have been killed {numTimesUserHasBeenKilled} time(s)");
-                writer.WriteLine("☠ You have killed the following users:");
-                writer.WriteLine();
-                writer.Write("☠ {0,-50}\t{1,10}", "User", "Kills");
+                writer.WriteLine($"☠ Here are the statistics for {currentUser.Nickname}:");
+                string time_str = numTimesUserHasBeenKilled == 1 ? "time" : "times";
+                writer.WriteLine($"☠ You have been killed {numTimesUserHasBeenKilled} {time_str}");
                 writer.WriteLine();
 
-                // Append '-' 60 times
-                writer.Write("☠ ");
-                for (int i = 0; i < 65; i++) { writer.Write("-"); }
-                writer.WriteLine();
-
-                foreach (KeyValuePair<string, int> kv in userKillsDict)
+                if (userKillsDict.Any())
                 {
-                    writer.Write("☠ {0,-50}\t{1,10}", kv.Key, kv.Value);
+
+                    writer.WriteLine("☠ You have killed the following users:");
+                    writer.WriteLine();
+                    writer.Write("☠ {0,-50}\t{1,10}", "User", "Kills");
                     writer.WriteLine();
 
+                    // Append '-' 60 times
+                    writer.Write("☠ ");
+                    for (int i = 0; i < 65; i++) { writer.Write("-"); }
+                    writer.WriteLine();
+
+                    foreach (KeyValuePair<string, int> kv in userKillsDict)
+                    {
+                        writer.Write("☠ {0,-50}\t{1,10}", allUsers[kv.Key].Nickname, kv.Value);
+                        writer.WriteLine();
+
+                    }
                 }
 
-                writer.WriteLine();
-                writer.WriteLine("☠ You have been killed by the following users:");
-                writer.Write("☠ {0,-50}\t{1,10}", "User", "Kills");
-                writer.WriteLine();
-
-                // Append '-' 60 times
-                writer.Write("☠ ");
-                for (int i = 0; i < 65; i++) { writer.Write("-"); }
-                writer.WriteLine();
-
-                foreach (KeyValuePair<string, int> kv in userDeathsDict)
+                if (userDeathsDict.Any())
                 {
-                    writer.Write("☠ {0,-50}\t{1,10}", kv.Key, kv.Value);
+                    writer.WriteLine();
+                    writer.WriteLine("☠ You have been killed by the following users:");
+                    writer.WriteLine();
+                    writer.Write("☠ {0,-50}\t{1,10}", "User", "Kills");
                     writer.WriteLine();
 
+                    // Append '-' 60 times
+                    writer.Write("☠ ");
+                    for (int i = 0; i < 65; i++) { writer.Write("-"); }
+                    writer.WriteLine();
+
+                    foreach (KeyValuePair<string, int> kv in userDeathsDict)
+                    {
+                        writer.Write("☠ {0,-50}\t{1,10}", allUsers[kv.Key].Nickname, kv.Value);
+                        writer.WriteLine();
+
+                    }
                 }
 
                 if (topTen.Any())
                 {
                     writer.WriteLine();
                     writer.WriteLine("☠ Here are the last 10 times someone killed you and why:");
+                    writer.WriteLine();
                     writer.Write("☠ {0,-50}\t{1,15}\t{2, 50}", "User", "Date", "Reason");
                     writer.WriteLine();
 
@@ -203,7 +227,7 @@ namespace KillBot.modules
 
                     foreach (Kill k in topTen)
                     {
-                        writer.Write("☠ {0,-50}\t{1,15}\t{2, 50}", k.KillerUsername, k.CreatedAt, k.Reason);
+                        writer.Write("☠ {0,-50}\t{1,15}\t{2, 50}", allUsers[k.KillerId].Nickname, k.CreatedAt, k.Reason);
                         writer.WriteLine();
                     }
                 }
@@ -213,6 +237,12 @@ namespace KillBot.modules
             }
         }
 
+        private async Task<Dictionary<string, IGuildUser>> GetAllUsersDictionary()
+        {
+            var users = Context.Guild.GetUsersAsync();
+            var allUsers = await users.Flatten().ToListAsync();
+            return allUsers.ToDictionary(u => u.Id.ToString(), u => u);
+        }
 
         [Command("kill")]
         [Summary("Kill This Man! Admonish someone who says or does something cringy or stupid.")]
@@ -236,5 +266,24 @@ namespace KillBot.modules
             bldr.AppendLine("☠ Bots cannot activate the kill commands.");
             return bldr.ToString();
         }
+
+        private async Task<IGuildUser?> GetGuildUserFromIdAsync(string userId)
+        {
+            try
+            {
+                // Get the user from the user mention
+                IAsyncEnumerable<IReadOnlyCollection<IGuildUser>> users;
+                List<IGuildUser>? allUsers;
+                users = Context.Guild.GetUsersAsync();
+                allUsers = await users.Flatten().ToListAsync();
+                return allUsers.FirstOrDefault(u => u.Id.ToString().Equals(userId, StringComparison.OrdinalIgnoreCase));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "AN ERROR OCCURRED");
+                return null;
+            }
+        }
+
     }
 }

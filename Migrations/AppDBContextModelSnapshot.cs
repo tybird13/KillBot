@@ -26,15 +26,21 @@ namespace KillBot.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("KillerUsername")
+                    b.Property<string>("KillerId")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("KillerUsername")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Reason")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("TargetUsername")
+                    b.Property<string>("TargetId")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TargetUsername")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
