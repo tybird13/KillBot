@@ -1,7 +1,7 @@
 ﻿using Discord.WebSocket;
 using Discord.Commands;
 using System.Reflection;
-using CustomLogging;
+using Serilog;
 
 namespace KillBot.services
 {
@@ -10,27 +10,25 @@ namespace KillBot.services
         private readonly IServiceProvider services;
         private readonly DiscordSocketClient client;
         private readonly CommandService commands;
-        private readonly ILogger logger;
 
-        public CommandHandler(IServiceProvider services, DiscordSocketClient client, CommandService commands, ILogger logger)
+        public CommandHandler(IServiceProvider services, DiscordSocketClient client, CommandService commands)
         {
-            logger.Verbose("Creating Command Handler");
+            Log.Verbose("Creating Command Handler");
             this.services = services;
             this.client = client;
             this.commands = commands;
-            this.logger = logger;
         }
 
         public async Task InstallCommandsAsync()
         {
-            logger.Verbose("Install commands async");
+            Log.Verbose("Install commands async");
             client.MessageReceived += HandleCommandAsync;
             await commands.AddModulesAsync(assembly: Assembly.GetEntryAssembly(), services: services);
         }
 
         private async Task HandleCommandAsync(SocketMessage messageParam)
         {
-            logger.Verbose("Handle command async method");
+            Log.Verbose("Handle command async method");
             // don't process system messages
             var message = messageParam as SocketUserMessage;
             if (message == null)

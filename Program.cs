@@ -1,103 +1,76 @@
 ﻿using Discord;
-using CustomLogging;
 using KillBot;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using KillBot.services;
+using Serilog;
+using Microsoft.Extensions.Hosting;
+using Discord.Commands;
+using KillBot.database;
 using Microsoft.Extensions.Configuration;
+using Serilog.Events;
 
 public class Program
 {
     public static Task Main(string[] args) => new Program().MainAsync();
-    public static Configuration _config = Configuration.GetConfiguration("config.json");
-    public static ILogger Logger = new LogProvider(_config.LogLevel).Logger;
 
     public async Task MainAsync()
     {
-        Logger.Verbose("Getting configuration..");
-        // Get configuration
-        Logger.Debug("Starting Discord Bot {0}.", _config.AppName);
 
-        string? token = Environment.GetEnvironmentVariable(_config.DiscordTokenKey);
-
-        DiscordSocketClient client = new DiscordSocketClient();
-        client.Log += Log;
-
-        await client.LoginAsync(TokenType.Bot, token);
-
-        Logger.Debug("Starting client");
-
-        await client.StartAsync();
-
-        // Configure services
-        ServiceProvider services = Configuration.BuildServiceProvider(Logger, client);
-        CommandHandler commandHandler = services.GetRequiredService<CommandHandler>();
-        await commandHandler.InstallCommandsAsync();
-
-        Logger.Information("Client started successfully. Status: {0}", client.Status);
-
-        await Task.Factory.StartNew(() =>
-        {
-            string? response;
-            do
+        IHost host = Host.CreateDefaultBuilder()
+            .ConfigureServices((context, services) => BuildServices(services, context))
+            .ConfigureHostConfiguration(config =>
             {
-                Console.WriteLine("Type 'exit' to close.");
-                response = Console.ReadLine();
+                Log.Verbose("Getting configuration..");
+                config.AddJsonFile("config.json");
+            })
+            .Build();
 
-            } while (response == null || !response.Equals("exit"));
-
-        });
-
-        Logger.Information("Shutting down...");
+        await host.RunAsync();
     }
 
-    public static async Task Log(LogMessage msg)
+    public static async Task LogMethod(LogMessage msg)
     {
         await Task.Factory.StartNew(() =>
         {
             switch (msg.Severity)
             {
                 case LogSeverity.Debug:
-                    Logger.Debug(msg.ToString());
+                    Log.Debug(msg.ToString());
                     break;
                 case LogSeverity.Info:
-                    Logger.Information(msg.ToString());
+                    Log.Information(msg.ToString());
                     break;
                 case LogSeverity.Warning:
-                    Logger.Warning(msg.ToString());
+                    Log.Warning(msg.ToString());
                     break;
                 case LogSeverity.Error:
-                    Logger.Error(msg.ToString());
+                    Log.Error(msg.ToString());
                     break;
                 default:
-                    Logger.Verbose(msg.ToString());
+                    Log.Verbose(msg.ToString());
                     break;
             }
         });
     }
 
-    public static void DBLog(string msg)
+    public static void BuildServices(IServiceCollection serviceCollection, HostBuilderContext context)
     {
-        string _msg = "DB LOG: " + msg;
+        LogProvider.CreateLogger(LogEventLevel.Verbose);
 
-        switch (_config.LogLevel)
-        {
-            case LogLevel.DEBUG:
-                Logger.Debug(_msg);
-                break;
-            case LogLevel.INFO:
-                Logger.Information(_msg);
-                break;
-            case LogLevel.WARN:
-                Logger.Warning(_msg);
-                break;
-            case LogLevel.ERROR:
-                Logger.Error(_msg);
-                break;
-            default:
-                Logger.Verbose(_msg);
-                break;
-        }
+        Log.Verbose("Building services...");
+
+        serviceCollection.AddSingleton<IConfiguration>(provider => context.Configuration);
+
+        var commandServiceConfig = new CommandServiceConfig();
+        commandServiceConfig.LogLevel = LogSeverity.Verbose;
+        serviceCollection.AddSingleton(new CommandService(commandServiceConfig));
+
+        serviceCollection.AddSingleton<CommandHandler>();
+        serviceCollection.AddDbContext<AppDBContext>();
+        serviceCollection.AddSingleton<DiscordSocketClient>();
+        serviceCollection.AddHostedService<Worker>();
+        Log.Verbose("Finished building the services");
     }
 }
 

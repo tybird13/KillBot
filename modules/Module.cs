@@ -1,10 +1,10 @@
-﻿using CustomLogging;
-using Discord;
+﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using KillBot.database;
 using KillBot.models;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Serilog;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -12,12 +12,10 @@ namespace KillBot.modules
 {
     public class Module : ModuleBase<SocketCommandContext>
     {
-        private readonly ILogger logger;
         private readonly AppDBContext database;
 
-        public Module(ILogger logger, AppDBContext database)
+        public Module(AppDBContext database)
         {
-            this.logger = logger;
             this.database = database;
         }
 
@@ -33,7 +31,7 @@ namespace KillBot.modules
 
                 if (String.IsNullOrEmpty(@params) || String.IsNullOrWhiteSpace(@params))
                 {
-                    logger.Error("The parameters to the kill command was empty.");
+                    Log.Error("The parameters to the kill command was empty.");
                     await ReplyAsync(FormattedHelpMessage());
                     return;
                 }
@@ -44,7 +42,7 @@ namespace KillBot.modules
 
                 if (!match.Success)
                 {
-                    logger.Error("The parameters for the kill command do not match the required pattern of !kill <user mention> \"reason\"");
+                    Log.Error("The parameters for the kill command do not match the required pattern of !kill <user mention> \"reason\"");
                     await Context.Channel.SendMessageAsync("To kill someone, use the following format: `!kill @user \"Reason you killed them\"`");
                     return;
                 }
@@ -56,13 +54,13 @@ namespace KillBot.modules
 
                 if (user == null)
                 {
-                    logger.Error("Target user {0} was not found!", userMention);
+                    Log.Error("Target user {0} was not found!", userMention);
                     return;
                 }
 
                 SocketUser callingUser = Context.User;
-                logger.Verbose("Kill command activated by {0}", callingUser.Username);
-                logger.Debug("{0} killed {1}", callingUser.Username, user);
+                Log.Verbose("Kill command activated by {0}", callingUser.Username);
+                Log.Debug("{0} killed {1}", callingUser.Username, user);
 
                 var kill = new Kill()
                 {
@@ -89,13 +87,13 @@ namespace KillBot.modules
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "An error occurred while adding a 'kill' record.");
+                    Log.Error(ex, "An error occurred while adding a 'kill' record.");
                     throw;
                 }
             }
             catch (Exception e)
             {
-                logger.Error(e, "An error occurred in the kill method");
+                Log.Error(e, "An error occurred in the kill method");
                 throw;
             }
         }
@@ -106,7 +104,7 @@ namespace KillBot.modules
         {
             try
             {
-                logger.Verbose("Kill statistics method invoked by {0}.", Context.User.Username);
+                Log.Verbose("Kill statistics method invoked by {0}.", Context.User.Username);
 
                 Dictionary<string, IGuildUser> allUsers = await GetAllUsersDictionary();
 
@@ -122,7 +120,7 @@ namespace KillBot.modules
                     var match = Regex.Match(userMention, pattern);
                     if (!match.Success)
                     {
-                        logger.Error("Unable to match user entry {0} to pattern {1} ", userMention, pattern);
+                        Log.Error("Unable to match user entry {0} to pattern {1} ", userMention, pattern);
                         await ReplyAsync("There was an issue. In order to see the kill stats for a user, please enter `!killstats @user`");
                         return;
                     }
@@ -132,7 +130,7 @@ namespace KillBot.modules
 
                     if (result == null)
                     {
-                        logger.Error("There was an issue getting the user from the mention id {0}", userMention);
+                        Log.Error("There was an issue getting the user from the mention id {0}", userMention);
                         await ReplyAsync("There was an issue. In order to see the kill stats for a user, please enter `!killstats @user`");
                         return;
                     }
@@ -249,7 +247,7 @@ namespace KillBot.modules
             }
             catch (Exception e)
             {
-                logger.Error(e, "An error occurred in the killstats method.");
+                Log.Error(e, "An error occurred in the killstats method.");
                 throw;
             }
         }
@@ -297,7 +295,7 @@ namespace KillBot.modules
             }
             catch (Exception e)
             {
-                logger.Error(e, "AN ERROR OCCURRED");
+                Log.Error(e, "AN ERROR OCCURRED");
                 return null;
             }
         }
