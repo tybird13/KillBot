@@ -26,6 +26,7 @@ namespace KillBot.database
             var folder = "KillBot";
 
             var pathFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            Log.Verbose("pathFolder: {0}", pathFolder);
             var dbPath = Path.Join(pathFolder, folder);
 
             if (!Directory.Exists(dbPath))

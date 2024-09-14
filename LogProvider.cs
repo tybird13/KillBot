@@ -65,7 +65,7 @@ namespace KillBot
             string path = "";
             if (Environment.GetEnvironmentVariable("IS_DOCKER")?.Equals("TRUE") ?? false)
             {
-                path = Path.Combine("/app", AppDomain.CurrentDomain.FriendlyName, $"{AppDomain.CurrentDomain.FriendlyName}-{DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss")}.log");
+                path = Path.Combine("/app", AppDomain.CurrentDomain.FriendlyName, $"{AppDomain.CurrentDomain.FriendlyName}-{DateTime.Now:yyyy-MM-dd-HH-mm-ss}.log");
             }
             else
             {

@@ -1,6 +1,6 @@
 ﻿{
   "AppName": "KillBot",
-  "DiscordTokenKey": "DISCORD_TOKEN_KEY",
+  "DiscordTokenKey": "DISCORD_KILL_BOT_TOKEN",
   "DatabaseFileName": "KillThisMan.db",
   "LogLevel":  "Verbose"
 }
