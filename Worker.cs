@@ -32,9 +32,12 @@ namespace KillBot
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
             await base.StartAsync(cancellationToken);
+            _client.Log += Program.LogMethod;
+
             Log.Debug("Starting Discord Bot {0}.", _config.GetValue<string>("AppName"));
 
-            string? token = Environment.GetEnvironmentVariable(_config.GetValue<string>("DiscordTokenKey"));
+            string key = _config.GetValue<string>("DiscordTokenKey");
+            string? token = Environment.GetEnvironmentVariable(key);
 
             if (token == null)
             {
@@ -43,15 +46,12 @@ namespace KillBot
                 throw new ApplicationException(msg);
             }
 
-            _client.Log += Program.LogMethod;
-
+            Log.Verbose("LOGGING IN");
             await _client.LoginAsync(TokenType.Bot, token);
-
-            Log.Debug("Starting client");
-
-            await _client.StartAsync();
-
+            Log.Verbose("LOGIN SUCCESSFUL");
             await _commandHandler.InstallCommandsAsync();
+            Log.Debug("Starting client");
+            await _client.StartAsync();
 
             Log.Information("Client started successfully. Status: {0}", _client.Status);
         }

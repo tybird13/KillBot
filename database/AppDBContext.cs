@@ -7,13 +7,14 @@ using Microsoft.Extensions.Configuration;
 
 namespace KillBot.database
 {
-    public class AppDBContext: DbContext
+    public class AppDBContext : DbContext
     {
         private readonly IConfiguration _config;
 
         public DbSet<Kill> Kills { get; set; }
 
-        public AppDBContext(IConfiguration config){
+        public AppDBContext(IConfiguration config)
+        {
             _config = config;
             Database.EnsureCreated();
         }
@@ -23,25 +24,45 @@ namespace KillBot.database
             options.EnableDetailedErrors()
                 .LogTo((msg) => DBLog(msg), Microsoft.Extensions.Logging.LogLevel.Warning);
 
-            var folder = "KillBot";
+            var newFolder = "KillBot";
 
-            var pathFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            Log.Verbose("pathFolder: {0}", pathFolder);
-            var dbPath = Path.Join(pathFolder, folder);
-
-            if (!Directory.Exists(dbPath))
-            {
-                Directory.CreateDirectory(dbPath);
-            }
+            string pathFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             
-            Log.Verbose("Database File Path: {0}", dbPath);
+            if(string.IsNullOrEmpty(pathFolder))
+                pathFolder = Directory.GetCurrentDirectory();
 
-             SqliteConnectionStringBuilder bldr = new SqliteConnectionStringBuilder();
+            Log.Verbose("pathFolder: {0}", pathFolder);
+            var dbPath = Path.Join(pathFolder, "database", newFolder);
+            Log.Verbose("dbPath: {0}", dbPath);
+            if (string.IsNullOrEmpty(pathFolder))
+                Log.Warning("pathFolder is null or empty!");
+            if (string.IsNullOrEmpty(dbPath))
+                Log.Warning("dbPath is null or empty!");
+            
+
+            SqliteConnectionStringBuilder bldr = new SqliteConnectionStringBuilder();
             var filename = _config.GetValue<string>("DatabaseFileName");
-            bldr.DataSource = Path.Join(dbPath, filename);
+
+
+            string fn = Path.Join(dbPath, filename);
+
+            try
+            {
+                if (!File.Exists(fn))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(fn));
+                }
+            }
+            catch (IOException e)
+            {
+                Log.Error(e, "Something went wrong while creating the database folder {0}", fn);
+            }
+
+            Log.Verbose("Database File Path: {0}", fn);
+            bldr.DataSource = fn;
             string conn = bldr.ConnectionString.ToString();
             options.UseSqlite(new SqliteConnection(conn));
-            
+
         }
 
         public void DBLog(string msg)

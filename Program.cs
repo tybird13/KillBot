@@ -12,13 +12,27 @@ using Serilog.Events;
 
 public class Program
 {
-    public static Task Main(string[] args) => new Program().MainAsync();
+    private IConfiguration _config;
 
-    public async Task MainAsync()
+    public Program()
     {
+        // Create the configuration
+        var builder = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile(path: "config.json");
 
-        IHost host = Host.CreateDefaultBuilder()
-            .ConfigureServices((context, services) => BuildServices(services, context))
+        // Build the configuration and assign to the config.
+        _config = builder.Build();
+    }
+
+    public static Task Main(string[] args) => new Program().MainAsync(args);
+
+    public async Task MainAsync(string[] args)
+    {
+        try{
+
+        IHost host = Host.CreateDefaultBuilder(args)
+            .ConfigureServices((context, services) => ConfigureServices(services, context))
             .ConfigureHostConfiguration(config =>
             {
                 Log.Verbose("Getting configuration..");
@@ -27,40 +41,49 @@ public class Program
             .Build();
 
         await host.RunAsync();
-    }
-
-    public static async Task LogMethod(LogMessage msg)
-    {
-        await Task.Factory.StartNew(() =>
+        Log.Verbose("SHUTDOWN");
+        }
+        catch(Exception e)
         {
-            switch (msg.Severity)
-            {
-                case LogSeverity.Debug:
-                    Log.Debug(msg.ToString());
-                    break;
-                case LogSeverity.Info:
-                    Log.Information(msg.ToString());
-                    break;
-                case LogSeverity.Warning:
-                    Log.Warning(msg.ToString());
-                    break;
-                case LogSeverity.Error:
-                    Log.Error(msg.ToString());
-                    break;
-                default:
-                    Log.Verbose(msg.ToString());
-                    break;
-            }
-        });
+            Log.Error(e, "FATAL ERROR");
+        }
+        finally{
+            Log.Fatal("AAAGGGHHH");
+        }
     }
 
-    public static void BuildServices(IServiceCollection serviceCollection, HostBuilderContext context)
+    public static async Task LogMethod(LogMessage message)
+    {
+        var severity = message.Severity switch
+        {
+            LogSeverity.Critical => LogEventLevel.Fatal,
+            LogSeverity.Error => LogEventLevel.Error,
+            LogSeverity.Warning => LogEventLevel.Warning,
+            LogSeverity.Info => LogEventLevel.Information,
+            LogSeverity.Verbose => LogEventLevel.Verbose,
+            LogSeverity.Debug => LogEventLevel.Debug,
+            _ => LogEventLevel.Verbose
+        };
+        Log.Write(severity, message.Exception, "[DISCORD MESSAGE][{Source}] {Message}", message.Source, message.Message);
+        await Task.CompletedTask;
+    }
+
+    public static void ConfigureServices(IServiceCollection serviceCollection, HostBuilderContext context)
     {
         LogProvider.CreateLogger(LogEventLevel.Verbose);
 
         Log.Verbose("Building services...");
 
-        serviceCollection.AddSingleton<IConfiguration>(provider => context.Configuration);
+        DiscordSocketClient client = new(
+            new DiscordSocketConfig()
+            {
+                GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent,
+                LogLevel = LogSeverity.Verbose
+            }
+        );
+
+        serviceCollection.AddSingleton(client);
+        serviceCollection.AddSingleton(provider => context.Configuration);
 
         var commandServiceConfig = new CommandServiceConfig();
         commandServiceConfig.LogLevel = LogSeverity.Verbose;

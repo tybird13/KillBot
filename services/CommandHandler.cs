@@ -23,12 +23,16 @@ namespace KillBot.services
         {
             Log.Verbose("Install commands async");
             client.MessageReceived += HandleCommandAsync;
-            await commands.AddModulesAsync(assembly: Assembly.GetEntryAssembly(), services: services);
+            client.Ready += async () =>
+            {
+                Log.Verbose("Adding modules async command");
+                await commands.AddModulesAsync(assembly: Assembly.GetEntryAssembly(), services: services);
+                Log.Verbose("Done adding modules");
+            };
         }
 
         private async Task HandleCommandAsync(SocketMessage messageParam)
         {
-            Log.Verbose("Handle command async method");
             // don't process system messages
             var message = messageParam as SocketUserMessage;
             if (message == null)
@@ -49,4 +53,4 @@ namespace KillBot.services
             await commands.ExecuteAsync(context: context, argPos: argPos, services: services);
         }
     }
-}          
+}
