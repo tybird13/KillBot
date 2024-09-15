@@ -72,7 +72,7 @@ public class Program
     {
         LogProvider.CreateLogger(LogEventLevel.Verbose);
 
-        Log.Verbose("Building services...");
+    Log.Verbose("Building services...");
 
         DiscordSocketClient client = new(
             new DiscordSocketConfig()
@@ -85,16 +85,16 @@ public class Program
         serviceCollection.AddSingleton(client);
         serviceCollection.AddSingleton(provider => context.Configuration);
 
-        var commandServiceConfig = new CommandServiceConfig();
-        commandServiceConfig.LogLevel = LogSeverity.Verbose;
-        serviceCollection.AddSingleton(new CommandService(commandServiceConfig));
+    var commandServiceConfig = new CommandServiceConfig();
+    commandServiceConfig.LogLevel = LogSeverity.Verbose;
+    serviceCollection.AddSingleton(new CommandService(commandServiceConfig));
 
-        serviceCollection.AddSingleton<CommandHandler>();
-        serviceCollection.AddDbContext<AppDBContext>();
-        serviceCollection.AddSingleton<DiscordSocketClient>();
-        serviceCollection.AddHostedService<Worker>();
-        Log.Verbose("Finished building the services");
-    }
+    serviceCollection.AddSingleton<CommandHandler>();
+    serviceCollection.AddDbContext<AppDBContext>();
+    serviceCollection.AddSingleton<DiscordSocketClient>();
+    serviceCollection.AddHostedService<Worker>();
+    Log.Verbose("Finished building the services");
+}
 }
 
 

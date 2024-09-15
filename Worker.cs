@@ -53,7 +53,11 @@ namespace KillBot
             Log.Debug("Starting client");
             await _client.StartAsync();
 
-            Log.Information("Client started successfully. Status: {0}", _client.Status);
+            _client.Ready += async () => {
+                await _commandHandler.InstallCommandsAsync();
+                Log.Information("Client started successfully. Status: {0}", _client.Status);
+            };
+
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken)

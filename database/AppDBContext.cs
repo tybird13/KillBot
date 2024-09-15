@@ -4,6 +4,7 @@ using Microsoft.Data.Sqlite;
 using Serilog;
 using Serilog.Events;
 using Microsoft.Extensions.Configuration;
+using System.Reflection;
 
 namespace KillBot.database
 {
@@ -24,21 +25,27 @@ namespace KillBot.database
             options.EnableDetailedErrors()
                 .LogTo((msg) => DBLog(msg), Microsoft.Extensions.Logging.LogLevel.Warning);
 
-            var newFolder = "KillBot";
+            var folder = "KillBot";
 
-            string pathFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            
-            if(string.IsNullOrEmpty(pathFolder))
-                pathFolder = Directory.GetCurrentDirectory();
+            var pathFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 
             Log.Verbose("pathFolder: {0}", pathFolder);
-            var dbPath = Path.Join(pathFolder, "database", newFolder);
-            Log.Verbose("dbPath: {0}", dbPath);
-            if (string.IsNullOrEmpty(pathFolder))
-                Log.Warning("pathFolder is null or empty!");
-            if (string.IsNullOrEmpty(dbPath))
-                Log.Warning("dbPath is null or empty!");
-            
+            var dbPath = Path.Join(pathFolder, folder);
+
+            Log.Verbose("IS_DOCKER: {0}", _config.GetValue<bool>("IS_DOCKER"));
+            if (_config.GetValue<bool>("IS_DOCKER"))
+            {
+                pathFolder = Path.Join("app", "database");
+            }
+            else
+            {
+                if (!Directory.Exists(dbPath))
+                {
+                    Directory.CreateDirectory(dbPath);
+                }
+            }
+
+            Log.Verbose("Database {0}, \t{1}", pathFolder, dbPath);
 
             SqliteConnectionStringBuilder bldr = new SqliteConnectionStringBuilder();
             var filename = _config.GetValue<string>("DatabaseFileName");
