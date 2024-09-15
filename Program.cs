@@ -12,66 +12,74 @@ using Serilog.Events;
 
 public class Program
 {
-    public static Task Main(string[] args) => new Program().MainAsync();
+    public static void Main(string[] args)  {
+        try{
+            new Program().MainAsync().GetAwaiter().GetResult();
+        }
+        catch(Exception e){
+            Log.Error(e, "FATAL ERROR");
+        }
+    }
 
     public async Task MainAsync()
-    {
+{
 
-        IHost host = Host.CreateDefaultBuilder()
-            .ConfigureServices((context, services) => BuildServices(services, context))
-            .ConfigureHostConfiguration(config =>
-            {
-                Log.Verbose("Getting configuration..");
-                config.AddJsonFile("config.json");
-            })
-            .Build();
-
-        await host.RunAsync();
-    }
-
-    public static async Task LogMethod(LogMessage msg)
-    {
-        await Task.Factory.StartNew(() =>
+    IHost host = Host.CreateDefaultBuilder()
+        .ConfigureServices((context, services) => BuildServices(services, context))
+        .ConfigureHostConfiguration(config =>
         {
-            switch (msg.Severity)
-            {
-                case LogSeverity.Debug:
-                    Log.Debug(msg.ToString());
-                    break;
-                case LogSeverity.Info:
-                    Log.Information(msg.ToString());
-                    break;
-                case LogSeverity.Warning:
-                    Log.Warning(msg.ToString());
-                    break;
-                case LogSeverity.Error:
-                    Log.Error(msg.ToString());
-                    break;
-                default:
-                    Log.Verbose(msg.ToString());
-                    break;
-            }
-        });
-    }
+            Log.Verbose("Getting configuration..");
+            config.AddJsonFile("config.json");
+        })
+        .Build();
 
-    public static void BuildServices(IServiceCollection serviceCollection, HostBuilderContext context)
+    await host.RunAsync();
+    Log.Debug("TEST");
+}
+
+public static async Task LogMethod(LogMessage msg)
+{
+    await Task.Factory.StartNew(() =>
     {
-        LogProvider.CreateLogger(LogEventLevel.Verbose);
+        switch (msg.Severity)
+        {
+            case LogSeverity.Debug:
+                Log.Debug(msg.ToString());
+                break;
+            case LogSeverity.Info:
+                Log.Information(msg.ToString());
+                break;
+            case LogSeverity.Warning:
+                Log.Warning(msg.ToString());
+                break;
+            case LogSeverity.Error:
+                Log.Error(msg.ToString());
+                break;
+            default:
+                Log.Verbose(msg.ToString());
+                break;
+        }
+    });
+}
 
-        Log.Verbose("Building services...");
+public static void BuildServices(IServiceCollection serviceCollection, HostBuilderContext context)
+{
+    LogProvider.CreateLogger(LogEventLevel.Verbose);
 
-        serviceCollection.AddSingleton<IConfiguration>(provider => context.Configuration);
+    Log.Verbose("Building services...");
 
-        var commandServiceConfig = new CommandServiceConfig();
-        commandServiceConfig.LogLevel = LogSeverity.Verbose;
-        serviceCollection.AddSingleton(new CommandService(commandServiceConfig));
+    serviceCollection.AddSingleton<IConfiguration>(provider => context.Configuration);
 
-        serviceCollection.AddSingleton<CommandHandler>();
-        serviceCollection.AddDbContext<AppDBContext>();
-        serviceCollection.AddSingleton<DiscordSocketClient>();
-        serviceCollection.AddHostedService<Worker>();
-        Log.Verbose("Finished building the services");
-    }
+    var commandServiceConfig = new CommandServiceConfig();
+    commandServiceConfig.LogLevel = LogSeverity.Verbose;
+    serviceCollection.AddSingleton(new CommandService(commandServiceConfig));
+
+    serviceCollection.AddSingleton<CommandHandler>();
+    serviceCollection.AddDbContext<AppDBContext>();
+    serviceCollection.AddSingleton<DiscordSocketClient>();
+    serviceCollection.AddHostedService<Worker>();
+    Log.Verbose("Finished building the services");
+}
 }
 
 

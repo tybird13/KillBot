@@ -4,16 +4,18 @@ using Microsoft.Data.Sqlite;
 using Serilog;
 using Serilog.Events;
 using Microsoft.Extensions.Configuration;
+using System.Reflection;
 
 namespace KillBot.database
 {
-    public class AppDBContext: DbContext
+    public class AppDBContext : DbContext
     {
         private readonly IConfiguration _config;
 
         public DbSet<Kill> Kills { get; set; }
 
-        public AppDBContext(IConfiguration config){
+        public AppDBContext(IConfiguration config)
+        {
             _config = config;
             Database.EnsureCreated();
         }
@@ -26,22 +28,33 @@ namespace KillBot.database
             var folder = "KillBot";
 
             var pathFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
             Log.Verbose("pathFolder: {0}", pathFolder);
             var dbPath = Path.Join(pathFolder, folder);
 
-            if (!Directory.Exists(dbPath))
+            Log.Verbose("IS_DOCKER: {0}", _config.GetValue<bool>("IS_DOCKER"));
+            if (_config.GetValue<bool>("IS_DOCKER"))
             {
-                Directory.CreateDirectory(dbPath);
+                pathFolder = Path.Join("app", "database");
             }
-            
-            Log.Verbose("Database File Path: {0}", dbPath);
+            else
+            {
+                if (!Directory.Exists(dbPath))
+                {
+                    Directory.CreateDirectory(dbPath);
+                }
+            }
 
-             SqliteConnectionStringBuilder bldr = new SqliteConnectionStringBuilder();
+            Log.Verbose("Database {0}, \t{1}", pathFolder, dbPath);
+
+            SqliteConnectionStringBuilder bldr = new SqliteConnectionStringBuilder();
             var filename = _config.GetValue<string>("DatabaseFileName");
-            bldr.DataSource = Path.Join(dbPath, filename);
+            var fn = Path.Join(dbPath, filename);
+            Log.Information("Database File: {0}", Path.GetFullPath(fn));
+            bldr.DataSource = fn;
             string conn = bldr.ConnectionString.ToString();
             options.UseSqlite(new SqliteConnection(conn));
-            
+
         }
 
         public void DBLog(string msg)
