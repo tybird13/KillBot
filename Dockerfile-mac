@@ -1,0 +1,38 @@
+### CONTEXT AT PROJECTS FOLDER ###
+
+# TARCH
+# linux-x64 (Most desktop distributions like CentOS Stream, Debian, Fedora, Ubuntu, and derivatives)
+# linux-musl-x64 (Lightweight distributions using musl like Alpine Linux)
+# linux-musl-arm64 (Used to build Docker images for 64-bit Arm v8 and minimalistic base images)
+# linux-arm (Linux distributions running on Arm like Raspbian on Raspberry Pi Model 2+)
+# linux-arm64 (Linux distributions running on 64-bit Arm like Ubuntu Server 64-bit on Raspberry Pi Model 3+)
+# linux-bionic-arm64 (Distributions using Android's bionic libc, for example, Termux)
+
+
+# Build the dotnet api
+FROM --platform=$TARGETARCH mcr.microsoft.com/dotnet/runtime:8.0 AS base
+WORKDIR /app
+ENV IS_DOCKER=TRUE
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+ARG DISCORD_KILL_BOT_TOKEN
+ENV DISCORD_KILL_BOT_TOKEN=$DISCORD_KILL_BOT_TOKEN
+RUN apt update  \
+	&& apt install libicu-dev -y
+
+# DOTNET API
+FROM --platform=$BUILDARCH mcr.microsoft.com/dotnet/sdk:8.0 AS builder
+ARG TARCH
+WORKDIR /app/dotnet
+COPY . .
+RUN dotnet restore
+
+RUN dotnet build ./KillBot.csproj -c release -o /app/dotnet/build --property WarningLevel=0
+
+FROM builder AS publish
+RUN dotnet publish . -c release -o /app/dotnet/publish --property WarningLevel=0
+
+FROM base AS final
+WORKDIR /app/dotnet
+COPY --from=publish /app/dotnet/publish .
+ENTRYPOINT ["dotnet", "KillBot.dll"]
+
