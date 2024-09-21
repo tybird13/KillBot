@@ -77,7 +77,7 @@ public class Program
         DiscordSocketClient client = new(
             new DiscordSocketConfig()
             {
-                GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent,
+                GatewayIntents = GatewayIntents.All,
                 LogLevel = LogSeverity.Verbose
             }
         );
@@ -91,7 +91,6 @@ public class Program
 
     serviceCollection.AddSingleton<CommandHandler>();
     serviceCollection.AddDbContext<AppDBContext>();
-    serviceCollection.AddSingleton<DiscordSocketClient>();
     serviceCollection.AddHostedService<Worker>();
     Log.Verbose("Finished building the services");
 }

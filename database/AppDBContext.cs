@@ -30,20 +30,21 @@ namespace KillBot.database
             var pathFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 
             Log.Verbose("pathFolder: {0}", pathFolder);
-            var dbPath = Path.Join(pathFolder, folder);
 
             Log.Verbose("IS_DOCKER: {0}", _config.GetValue<bool>("IS_DOCKER"));
             if (_config.GetValue<bool>("IS_DOCKER"))
             {
                 pathFolder = Path.Join("app", "database");
             }
-            else
+
+            var dbPath = Path.Join(pathFolder, folder);
+
+            if (!Directory.Exists(Path.GetFullPath(dbPath)))
             {
-                if (!Directory.Exists(dbPath))
-                {
-                    Directory.CreateDirectory(dbPath);
-                }
+                Directory.CreateDirectory(Path.GetFullPath(dbPath));
             }
+            
+            dbPath = Path.GetFullPath(dbPath);
 
             Log.Verbose("Database {0}, \t{1}", pathFolder, dbPath);
 

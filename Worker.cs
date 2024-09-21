@@ -49,14 +49,12 @@ namespace KillBot
             Log.Verbose("LOGGING IN");
             await _client.LoginAsync(TokenType.Bot, token);
             Log.Verbose("LOGIN SUCCESSFUL");
-            await _commandHandler.InstallCommandsAsync();
+
             Log.Debug("Starting client");
             await _client.StartAsync();
 
-            _client.Ready += async () => {
-                await _commandHandler.InstallCommandsAsync();
-                Log.Information("Client started successfully. Status: {0}", _client.Status);
-            };
+            await _commandHandler.InstallCommandsAsync();
+            Log.Information("Client started successfully. Status: {0}", _client.Status);
 
         }
 

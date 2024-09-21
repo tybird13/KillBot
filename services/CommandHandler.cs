@@ -33,6 +33,7 @@ namespace KillBot.services
 
         private async Task HandleCommandAsync(SocketMessage messageParam)
         {
+            Log.Verbose("HANDLE COMMAND");
             // don't process system messages
             var message = messageParam as SocketUserMessage;
             if (message == null)
